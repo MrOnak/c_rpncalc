@@ -117,6 +117,8 @@ void calculate() {
           printf("Error: unknown operator\n");
           exit(1);
       }
+      printf("  %f %s %f == %f\n", a1, current->operand, a2, current->floatval);
+
       current->isNum = true;
       current->isOperand = false;
       current->operand = NULL;
@@ -164,7 +166,7 @@ int main(int argc, char *argv[]) {
     //debugStack();
     calculate();
 
-    printf("calculation result is: %f\n", head->floatval);
+    printf("final result is: %f\n", head->floatval);
 
   } else {
     printf("Usage example: rpncalc 3 2 +\n this would calculate 3 + 2 = 5\n\n");
