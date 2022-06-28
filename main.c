@@ -52,7 +52,6 @@ void parseArguments() {
       current->floatval = lastFloat;
       current->isNum = true;
       current->rawval = NULL;
-      //printf("float: %f\n", current->floatval);
 
     } else if (strlen(current->rawval) == 1) {
       switch (*current->rawval) {
@@ -65,7 +64,6 @@ void parseArguments() {
           current->operand = *current->rawval;
           current->isOperand = true;
           current->rawval = NULL;
-          //printf("operand: %s\n", current->operand);
           break;
         default:
           printf("Error: unrecognized argument %s\n", current->rawval);
@@ -75,16 +73,15 @@ void parseArguments() {
       // textual operators
       if (strcmp(current->rawval, "pow") == 0) {
         current->operand = '^';
-        current->isOperand = true;
-        current->rawval = NULL;
       } else if (strcmp(current->rawval, "root") == 0) {
         current->operand = 'r';
-        current->isOperand = true;
-        current->rawval = NULL;
       } else {
         printf("Error: unrecognized argument %s\n", current->rawval);
         exit(1);
       }
+
+      current->isOperand = true;
+      current->rawval = NULL;
     }
 
     current = current->next;
@@ -148,7 +145,6 @@ void calculate() {
       }
     }
 
-
     current = current->next;
     i++;
   } while(current->next != NULL);
@@ -164,7 +160,7 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     node_t * current = head;
 
-    // parse all arguments into the stack
+    // fill all arguments into the stack
     for (uint8_t i = 1; i < argc; i++) {
       current->rawval = argv[i];
       current->isNum = false;
@@ -181,7 +177,6 @@ int main(int argc, char *argv[]) {
     }
 
     parseArguments();
-    //debugStack();
     calculate();
 
     printf("final result is: %f\n", head->floatval);
