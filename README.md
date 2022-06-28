@@ -10,6 +10,8 @@ The calculator currently supports the following operations:
 - root: 27 3 root
 - modulo: 3 2 % (attention: _modulo operation is done on the integer values of both operands, since the notion of a "remainder" is only applicable to integer division_)
 
+**It must be noted that the calculator exclusively calculates with floating point precision. There is no integer math, except when calculating the modulo as mentioned above.**
+
 ### notation
 The calculator uses reverse polish notation:
 
@@ -33,6 +35,8 @@ You can calculate the fourth root number in the same way: ```rpncalc 256 4 root`
 Due to how root numbers work you don't actually need the ```root``` operator, you can deconstruct it with ```pow```:
 
 ```rpncalc 27 3 root``` is mathematically identical to ```rpncalc 27 3 1 / ^```
+
+Another example is the Pythagorean formular to calculate the hypotenuse of a right-angled triangle. Assume lengths 2 and 3 for the side, then the length of the hypothenuse is ```rpncalc 2 2 \* 3 3 \* + 1 2 / ^```.
 
 ### implementation
 The calculator is implemented as a stack machine using a double-linked list.
