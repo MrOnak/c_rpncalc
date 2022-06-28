@@ -12,7 +12,7 @@
 typedef struct node {
   char *rawval;
   float floatval;
-  char *operand;
+  char operand;
   bool isNum;
   bool isOperand;
   struct node * next;
@@ -50,8 +50,8 @@ void parseArguments() {
   do {
     if (testForFloat(current->rawval)) {
       current->floatval = lastFloat;
-      current->rawval = NULL;
       current->isNum = true;
+      current->rawval = NULL;
       //printf("float: %f\n", current->floatval);
 
     } else if (strlen(current->rawval) == 1) {
@@ -61,9 +61,10 @@ void parseArguments() {
         case '*':
         case '/':
         case '^':
-          current->operand = current->rawval;
-          current->rawval = NULL;
+        case '%':
+          current->operand = *current->rawval;
           current->isOperand = true;
+          current->rawval = NULL;
           //printf("operand: %s\n", current->operand);
           break;
         default:
@@ -71,8 +72,19 @@ void parseArguments() {
           exit(1);
       }
     } else {
-      printf("Error: unrecognized argument %s\n", current->rawval);
-      exit(1);
+      // textual operators
+      if (strcmp(current->rawval, "pow") == 0) {
+        current->operand = '^';
+        current->isOperand = true;
+        current->rawval = NULL;
+      } else if (strcmp(current->rawval, "root") == 0) {
+        current->operand = 'r';
+        current->isOperand = true;
+        current->rawval = NULL;
+      } else {
+        printf("Error: unrecognized argument %s\n", current->rawval);
+        exit(1);
+      }
     }
 
     current = current->next;
@@ -88,7 +100,7 @@ void debugStack() {
     if (current->isNum) {
       printf("  (float) %f\n", current->floatval);
     } else if (current->isOperand) {
-      printf("  (oper)  %s\n", current->operand);
+      printf("  (oper)  %s\n", &current->operand);
     }
 
     current = current->next;
@@ -107,27 +119,33 @@ void calculate() {
       double a2 = current->prev->floatval;
       double a1 = current->prev->prev->floatval;
 
-      switch (*current->operand) {
+      switch (current->operand) {
         case '+': current->floatval = a1 + a2; break;
         case '-': current->floatval = a1 - a2; break;
         case '*': current->floatval = a1 * a2; break;
         case '/': current->floatval = a1 / a2; break;
         case '^': current->floatval = pow(a1, a2); break;
+        case '%': current->floatval = (int) a1 % (int) a2; break;
+        case 'r': current->floatval = pow(a1, 1.0 / a2); break; // any root function
         default:
           printf("Error: unknown operator\n");
           exit(1);
       }
-      printf("  %f %s %f == %f\n", a1, current->operand, a2, current->floatval);
+      printf("  %f %s %f == %f\n", a1, &current->operand, a2, current->floatval);
 
       current->isNum = true;
       current->isOperand = false;
-      current->operand = NULL;
-      free(current->prev->prev);
-      free(current->prev);
-      current->prev = NULL;
-      head = current;
+      current->operand = 0;
 
-      //debugStack();
+      if (current->prev->prev->prev == NULL) {
+        free(current->prev->prev);
+        free(current->prev);
+        current->prev = NULL;
+        head = current;
+      } else {
+        current->prev = current->prev->prev->prev;
+        current->prev->next = current;
+      }
     }
 
 
