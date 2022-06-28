@@ -11,41 +11,16 @@
 
 typedef struct node {
   char *rawval;
-  int intval;
   float floatval;
   char *operand;
-  bool isInt;
-  bool isFloat;
+  bool isNum;
   bool isOperand;
   struct node * next;
   struct node * prev;
 } node_t;
 
 node_t * head = NULL;
-int lastInt; // holds regex match from last successful integer test
 float lastFloat; // holds regex match from last successful float test
-
-bool testForInt(char *subject) {
-  bool returnValue = false;
-
-  const char *err;
-  int errOffset;
-  int ovector[30];
-  pcre *regex = pcre_compile("^[\\+\\-]*[1-9]+[0-9]*$", 0, &err, &errOffset, NULL);
-  int rc = pcre_exec(regex, NULL, subject, strlen(subject), 0, 0, ovector, 30);
-
-  if (rc == PCRE_ERROR_NOMATCH) {
-    //printf("not an integer ");
-  } else if (rc < -1) {
-    printf("Error: %d from int regex ", rc);
-    exit(1);
-  } else {
-    lastInt = atoi(subject);
-    returnValue = true;
-  }
-
-  return returnValue;
-}
 
 bool testForFloat(char *subject) {
   bool returnValue = false;
@@ -53,7 +28,7 @@ bool testForFloat(char *subject) {
   const char *err;
   int errOffset;
   int ovector[30];
-  pcre *regex = pcre_compile("^[\\+\\-]*[0-9]*\\.[0-9]*$", 0, &err, &errOffset, NULL);
+  pcre *regex = pcre_compile("^[\\+\\-]?([0-9]*[\\.])?[0-9]+$", 0, &err, &errOffset, NULL);
   int rc = pcre_exec(regex, NULL, subject, strlen(subject), 0, 0, ovector, 30);
 
   if (rc == PCRE_ERROR_NOMATCH) {
@@ -73,16 +48,10 @@ void parseArguments() {
   node_t * current = head;
 
   do {
-    if (testForInt(current->rawval)) {
-      current->intval = lastInt;
-      current->rawval = NULL;
-      current->isInt = true;
-      //printf("integer: %d\n", current->intval);
-
-    } else if (testForFloat(current->rawval)) {
+    if (testForFloat(current->rawval)) {
       current->floatval = lastFloat;
       current->rawval = NULL;
-      current->isFloat = true;
+      current->isNum = true;
       //printf("float: %f\n", current->floatval);
 
     } else if (strlen(current->rawval) == 1) {
@@ -92,7 +61,6 @@ void parseArguments() {
         case '*':
         case '/':
         case '^':
-        case '%':
           current->operand = current->rawval;
           current->rawval = NULL;
           current->isOperand = true;
@@ -117,17 +85,16 @@ void debugStack() {
 
   do {
     printf("%d", i);
-    if (current->isInt) {
-      printf("  (int)    %d\n", current->intval);
-    } else if (current->isFloat) {
-      printf("  (float)  %f\n", current->floatval);
+    if (current->isNum) {
+      printf("  (float) %f\n", current->floatval);
     } else if (current->isOperand) {
-      printf("  (string) %s\n", current->operand);
+      printf("  (oper)  %s\n", current->operand);
     }
 
     current = current->next;
     i++;
   } while(current->next != NULL);
+  printf("-----------\n");
 }
 
 void calculate() {
@@ -137,12 +104,30 @@ void calculate() {
   do {
     if (current->isOperand) {
       // right now all operands take two arguments so we do not need to test for variance
-      if (i >= 2) {
-      } else {
-        printf("Error: operand without enough arguments\n");
-        exit(1);
+      double a2 = current->prev->floatval;
+      double a1 = current->prev->prev->floatval;
+
+      switch (*current->operand) {
+        case '+': current->floatval = a1 + a2; break;
+        case '-': current->floatval = a1 - a2; break;
+        case '*': current->floatval = a1 * a2; break;
+        case '/': current->floatval = a1 / a2; break;
+        case '^': current->floatval = pow(a1, a2); break;
+        default:
+          printf("Error: unknown operator\n");
+          exit(1);
       }
+      current->isNum = true;
+      current->isOperand = false;
+      current->operand = NULL;
+      free(current->prev->prev);
+      free(current->prev);
+      current->prev = NULL;
+      head = current;
+
+      //debugStack();
     }
+
 
     current = current->next;
     i++;
@@ -162,8 +147,7 @@ int main(int argc, char *argv[]) {
     // parse all arguments into the stack
     for (uint8_t i = 1; i < argc; i++) {
       current->rawval = argv[i];
-      current->isInt = false;
-      current->isFloat = false;
+      current->isNum = false;
       current->isOperand = false;
 
       // add new item to stack if there are more arguments
@@ -177,9 +161,10 @@ int main(int argc, char *argv[]) {
     }
 
     parseArguments();
-    debugStack();
+    //debugStack();
     calculate();
-    debugStack();
+
+    printf("calculation result is: %f\n", head->floatval);
 
   } else {
     printf("Usage example: rpncalc 3 2 +\n this would calculate 3 + 2 = 5\n\n");
